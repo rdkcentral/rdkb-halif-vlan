@@ -103,12 +103,7 @@ Each API interface will be versioned using [Semantic Versioning 2.0.0](https://s
 
 ## Platform or Product Customization
 
-The product can be configured via the following compile time defines:
-
-```c
-FEATURE_RDKB_LED_MANAGER        # Enable the LED Manager
-FEATURE_RDKB_THERMAL_MANAGER    # Enable the Thermal Manager
-```
+None
 
 ## Interface API Documentation
 
