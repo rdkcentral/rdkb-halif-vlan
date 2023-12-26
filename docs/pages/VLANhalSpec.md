@@ -17,6 +17,8 @@ VLAN HAL is an abstraction layer, implemented to interact with the underlying so
 
 ### Initialization and Startup
 
+There is no dependent API's is expected to be intialized for invoking VLAN HAL client module.
+
 3rd party vendors will implement appropriately to meet operational requirements. This interface is expected to block if the hardware is not ready.
 
 ## Threading Model
@@ -25,7 +27,7 @@ The interface is not thread safe.
 
 Any module which is invoking the VLAN HAL api should ensure calls are made in a thread safe manner.
 
-Different 3rd party vendors allowed to create internal threads to meet the operational requirements. In this case 3rd party implementations should be responsible to synchronize between the calls, events and cleanup the thread.
+Vendors can create internal threads/events to meet their operation requirements. These should be responsible to synchronize between the calls, events and cleaned up on closure.
 
 ## Process Model
 
@@ -38,18 +40,26 @@ The client module is responsible to allocate and deallocate memory for necessary
 Different 3rd party vendors allowed to allocate memory for internal operational requirements. In this case 3rd party implementations
 should be responsible to deallocate internally.
 
+TODO:
+State a footprint requirement. Example: This should not exceed XXXX KB.
+
 ## Power Management Requirements
 
 The HAL is not involved in any of the power management operation.
 Any power management state transitions MUST not affect the operation of the VLAN HAL.
 
 ## Asynchronous Notification Model
-None
+
+There are no asynchronous notifications.
 
 ## Blocking calls
 
 The API's are expected to work synchronously and should complete within a time period commensurate with the complexity of the operation and in accordance with any relevant specification.
 Any calls that can fail due to the lack of a response should have a timeout period in accordance with any relevant documentation.
+The upper layers will call this API from a single thread context, this API should not suspend.
+
+TODO:
+As we state that they should complete within a time period, we need to state what that time target is, and pull it from the spec if required. Define the timeout requirement.
 
 ## Internal Error Handling
 
@@ -66,12 +76,11 @@ Following non functional requirement should be supported by the component.
 
 ## Logging and debugging requirements
 
+The component should log all the error and critical informative messages, preferably using printf, syslog which helps to debug/triage the issues and understand the functional flow of the system.
 
-The component should log all the error and critical informative messages which helps to debug/triage the issues and understand the functional flow of the system.
+The logging should be consistent across all HAL components.
 
-The logging should be consistence across all HAL components.
-
-If the vendor is going to log then it has to be logged in `xxx_vendor_hal.log` file name.
+If the vendor is going to log then it has to be logged in `xxx_vendor_hal.log` file name which can be placed in `/rdklogs/logs/` or `/var/tmp/` directory.
 
 Logging should be defined with log levels as per Linux standard logging.
 
@@ -82,7 +91,7 @@ The component should not be contributing more to memory and CPU utilization whil
 
 ## Quality Control
 
-VLAN HAL implementation should pass Coverity, Black duck scan, valgrind checks without any issue.
+VLAN HAL implementation should pass checks using any third party tools like `Coverity`, `Black duck`, `Valgrind` etc. without any issue to ensure quality.
 
 There should not be any memory leaks/corruption introduced by HAL and underneath 3rd party software implementation.
 
@@ -93,11 +102,11 @@ VLAN HAL implementation is expected to released under the Apache License 2.0.
 
 ## Build Requirements
 
-The source code should be build under Linux Yocto environment and should be delivered as a shared library libhal_vlan.so
+The source code should be able to be built under Linux Yocto environment and should be delivered as a shared library `libhal_vlan.so`
 
 ## Variability Management
 
-Any new API introduced should be implemented by all the 3rd party module and RDK generic code should be compatible with specific version of HAL software
+Changes to the interface will be controlled by versioning, vendors will be expected to implement to a fixed version of the interface, and based on SLA agreements move to later versions as demand requires.
 
 Each API interface will be versioned using [Semantic Versioning 2.0.0](https://semver.org/), the vendor code will comply with a specific version of the interface.
 
