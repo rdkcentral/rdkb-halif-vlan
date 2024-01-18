@@ -1,13 +1,14 @@
-# VLAN HAL Documentation
+# Virtual LAN HAL Documentation
 
 ## Acronyms
 
 - `HAL` \- Hardware Abstraction Layer
 - `RDK-B` \- Reference Design Kit for Broadband Devices
 - `OEM` \- Original Equipment Manufacture
+- `VLAN` \- Virtual LAN
 
 ## Description
-The diagram below describes a high-level software architecture of the VLAN HAL module stack.
+The diagram below describes a high-level software architecture of the VLAN (Virtual LAN) HAL module stack.
 
 ![VLAN HAL Architecture Diagram](images/VLAN_HAL_Architecture.png)
 
@@ -46,7 +47,7 @@ State a footprint requirement. Example: This should not exceed XXXX KB.
 ## Power Management Requirements
 
 The HAL is not involved in any of the power management operation.
-Any power management state transitions MUST not affect the operation of the VLAN HAL.
+Any power management state transitions WILL AFFECT affect the operation of the VLAN HAL.
 
 ## Asynchronous Notification Model
 
@@ -98,11 +99,11 @@ There should not be any memory leaks/corruption introduced by HAL and underneath
 
 ## Licensing
 
-VLAN HAL implementation is expected to released under the Apache License 2.0.
+VLAN HAL implementation is spected to released under the Apache License 2.0.
 
 ## Build Requirements
 
-The source code should be able to be built under Linux Yocto environment and should be delivered as a shared library `libhal_vlan.so`
+The source code should be able to be built under Linux Yocto environment and should be delivered as a shared library `libhal_vlan.so`.
 
 ## Variability Management
 
