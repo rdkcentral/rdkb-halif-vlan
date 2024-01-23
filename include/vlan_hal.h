@@ -322,7 +322,7 @@ int _is_this_interface_available_in_given_linux_bridge(char * if_name, char * br
 * @param[in] cmd A string representing the Linux shell command that will be executed to obtain the desired output. It will execute and get the buffer from shell output based on given command. It is vendor specific.
 * @param[out] out A character array (string) where the output of the input cmd will be copied. It is vendor specific.
 * @param[out] len length of the output string.
-*                 \n The maximum output length is 120.
+*                 \n The maximum output length is 512.
 *
 *
 */
@@ -334,7 +334,7 @@ void _get_shell_outputbuffer(char * cmd, char * out, int len);
 * @param[in] fp It is a pointer to a FILE object. It is vendor specific.
 * @param[out] out A character array (string) where the output of the input fp will be copied. It is vendor specific.
 * @param[out] len length of the output string.
-*                 \n The maximum output length is 120.
+*                 \n The maximum output length is 512.
 *
 *
 */
