@@ -237,7 +237,7 @@ int vlan_hal_printGroup(const char *groupName);
 
 
 /**
-* @brief This HAL utility is used dump all group setting, for debug purpose.
+* @brief This HAL utility is used dump all group setting, for debug purpose. It logs in console using printf.
 *
 * @return The status of the operation.
 * @retval RETURN_OK if successful.
