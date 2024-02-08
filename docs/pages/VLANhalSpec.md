@@ -79,9 +79,7 @@ Following non functional requirement should be supported by the component.
 
 The component should log all the error and critical informative messages, preferably using printf, syslog which helps to debug/triage the issues and understand the functional flow of the system.
 
-The logging should be consistent across all HAL components.
-
-If the vendor is going to log then it has to be logged in `xxx_vendor_hal.log` file name which can be placed in `/rdklogs/logs/` or `/var/tmp/` directory.
+It is recommended that each HAL component follows the same logging process. If logging is required, vendors should log in to the `vlan_vendor_hal.log` file, which can be found in the /var/tmp/ or /rdklogs/logs/ directories.
 
 Logging should be defined with log levels as per Linux standard logging.
 
