@@ -140,8 +140,10 @@ typedef struct _vlan_vlanidconfiguration
 ***********************************************************************/
 
 /*
- * TODO: Extend the return codes by listing out the possible reasons of failure, to improve the interface in the future. This was reported during the review for header file migration to opensource github.
- *
+ * TODO: Extend returns codes for all functions and change to enums
+ * 1. Extend the return codes by listing out the possible reasons of failure, to improve the interface in the future.
+ *    Return codes need improvement to specifically detail the reason for the return
+ *    This was reported during the review for header file migration to opensource github.
  */
 
 
