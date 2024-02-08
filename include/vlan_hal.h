@@ -92,11 +92,6 @@
  * @{
  */
 
-//defines for HAL version 1.0
-#define VLAN_HAL_MAJOR_VERSION 1        //!< This is the major verion of this HAL.
-#define VLAN_HAL_MINOR_VERSION 0        //!< This is the minor verson of the HAL.
-#define VLAN_HAL_MAINTENANCE_VERSION 1  //!< This is the maintenance version of the HAL.
-
 //defines for charecter length for VLAN configurartion
 #define VLAN_HAL_MAX_VLANGROUP_TEXT_LENGTH             32
 #define VLAN_HAL_MAX_VLANID_TEXT_LENGTH                32
