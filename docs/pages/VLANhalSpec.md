@@ -9,11 +9,37 @@
 
 ## Description
 The diagram below describes a high-level software architecture of the VLAN (Virtual LAN) HAL module stack.
+### Overview of the VLAN HAL Module
 
-![VLAN HAL Architecture Diagram](images/VLAN_HAL_Architecture.png)
+The VLAN HAL (Virtual Local Area Network Hardware Abstraction Layer) is a component within the RDK-B (Reference Design Kit for Broadband) framework designed to simplify the management of VLAN configurations on network devices.
+
+### Key Functionalities:
+
+- **Initialization:** Prepares the HAL for operation, typically by setting up internal data structures or communicating with the underlying hardware.
+VLAN Creation and Deletion: Allows the creation of new VLANs with specified IDs and names, and the removal of existing VLANs.
+- **Port Association:** Enables the association and disassociation of physical ports with specific VLANs.
+- **VLAN Filtering/Tagging:** Configures how VLANs handle incoming and outgoing traffic (untagged, tagged, or transparent).
+- **Bridge Mode:** Enables or disables the bridging mode for VLANs, which affects how traffic is forwarded within the network.
+- 
+### Purpose and Benefits:
+- **Standardization:** Provides a consistent interface for interacting with VLANs, regardless of the underlying hardware or vendor implementation. This allows RDK-B components to work seamlessly with various networking equipment.
+- **Abstraction:** Hides the complexity of VLAN configuration and management from higher-level software components, making it easier to develop and maintain networking applications.
 
 VLAN HAL is an abstraction layer, implemented to interact with the underlying software through a standard set of APIs to add / delete / print VLAN group / interface.
 
+```mermaid
+
+graph TD;
+    RDK-BSTACK[RDK-B Stack]
+    CcspPandM[CcspPandM]
+    VLANHAL["VLAN HAL(libhal_vlan.so)"]
+    VendorSoftware[Vendor Software]
+   
+    RDK-BSTACK --> CcspPandM
+    CcspPandM --> VLANHAL
+    VLANHAL --> VendorSoftware
+```
+   
 ## Component Runtime Execution Requirements
 
 ### Initialization and Startup
@@ -24,25 +50,31 @@ There is no dependent API's is expected to be intialized for invoking VLAN HAL c
 
 ## Threading Model
 
-The interface is not thread safe.
+Vendors may implement internal threading and event mechanisms to meet their operational requirements. These mechanisms must be designed to ensure thread safety when interacting with HAL interface. Proper cleanup of allocated resources (e.g., memory, file handles, threads) is mandatory when the vendor software terminates or closes its connection to the HAL.
 
-Any module which is invoking the VLAN HAL api should ensure calls are made in a thread safe manner.
+This interface is not inherently thread-safe. It is the responsibility of the calling module or component to ensure that all interactions with the APIs are properly synchronized.
 
-Vendors can create internal threads/events to meet their operation requirements. These should be responsible to synchronize between the calls, events and cleaned up on closure.
+### Implementation Guidance for Vendors:
+
+Vendors are free to use internal threading or event mechanisms within their implementation as needed to fulfill operational requirements. However, any such mechanisms must:
+
+- **Synchronize Access:** Implement appropriate synchronization primitives (e.g., mutexes, semaphores) to prevent race conditions and ensure data integrity when accessing the APIs.
+- **Resource Management:** Ensure proper cleanup and release of any resources (e.g., memory, threads) allocated during the lifetime of the instance, especially during module shutdown or disconnection.
 
 ## Process Model
 
-All API's are expected to be called from multiple process.
+All APIs are expected to be called from multiple processes. Due to this concurrent access, vendors must implement protection mechanisms within their API implementations to handle multiple processes calling the same API simultaneously. This is crucial to ensure data integrity, prevent race conditions, and maintain the overall stability and reliability of the system.
 
 ## Memory Model
 
-The client module is responsible to allocate and deallocate memory for necessary API's as specified in API Documentation.
+### Caller Responsibilities:
+- Manage memory passed to specific functions as outlined in the API documentation. This includes allocation and deallocation to prevent leaks.
 
-Different 3rd party vendors allowed to allocate memory for internal operational requirements. In this case 3rd party implementations
-should be responsible to deallocate internally.
-
-TODO:
-State a footprint requirement. Example: This should not exceed XXXX KB.
+### Module Responsibilities:
+- Modules must allocate and de-allocate memory for their internal operations, ensuring efficient resource management.
+- Modules are required to release all internally allocated memory upon closure to prevent resource leaks.
+- All module implementations and caller code must strictly adhere to these memory management requirements for optimal performance and system stability. Unless otherwise stated specifically in the API documentation.
+- All strings used in this module must be zero-terminated. This ensures that string functions can accurately determine the length of the string and prevents buffer overflows when manipulating strings.
 
 ## Power Management Requirements
 
@@ -55,16 +87,17 @@ There are no asynchronous notifications.
 
 ## Blocking calls
 
-The API's are expected to work synchronously and should complete within a time period commensurate with the complexity of the operation and in accordance with any relevant specification.
-Any calls that can fail due to the lack of a response should have a timeout period in accordance with any relevant documentation.
-The upper layers will call this API from a single thread context, this API should not suspend.
+**Synchronous and Responsive:** All APIs within this module should operate synchronously and complete within a reasonable timeframe based on the complexity of the operation. Specific timeout values or guidelines may be documented for individual API calls.
 
-TODO:
-As we state that they should complete within a time period, we need to state what that time target is, and pull it from the spec if required. Define the timeout requirement.
+**Timeout Handling:** To ensure resilience in cases of unresponsiveness, implement appropriate timeouts for API calls where failure due to lack of response is a possibility. Refer to the API documentation for recommended timeout values per function.
+
+**Non-Blocking Requirement:** Given the single-threaded environment in which these APIs will be called, it is imperative that they do not block or suspend execution of the main thread. Implementations must avoid long-running operations or utilize asynchronous mechanisms where necessary to maintain responsiveness.
 
 ## Internal Error Handling
 
-All the VLAN HAL API's should return error synchronously as a return argument. HAL is responsible to handle system errors(e.g. out of memory) internally.
+**Synchronous Error Handling:** All APIs must return errors synchronously as a return value. This ensures immediate notification of errors to the caller.
+**Internal Error Reporting:** The HAL is responsible for reporting any internal system errors (e.g., out-of-memory conditions) through the return value.
+**Focus on Logging for Errors:** For system errors, the HAL should prioritize logging the error details for further investigation and resolution.
 
 ## Persistence Model
 
@@ -77,23 +110,33 @@ Following non functional requirement should be supported by the component.
 
 ## Logging and debugging requirements
 
-The component should log all the error and critical informative messages, preferably using printf, syslog which helps to debug/triage the issues and understand the functional flow of the system.
+The component is required to record all errors and critical informative messages to aid in identifying, debugging, and understanding the functional flow of the system. Logging should be implemented using the syslog method, as it provides robust logging capabilities suited for system-level software. The use of `printf` is discouraged unless `syslog` is not available.
 
-It is recommended that each HAL component follows the same logging process. If logging is required, vendors should log in to the `vlan_vendor_hal.log` file, which can be found in the /var/tmp/ or /rdklogs/logs/ directories.
+All HAL components must adhere to a consistent logging process. When logging is necessary, it should be performed into the `vlan_vendor_hal.log` file, which is located in either the `/var/tmp/` or `/rdklogs/logs/` directories.
 
-Logging should be defined with log levels as per Linux standard logging.
+Logs must be categorized according to the following log levels, as defined by the Linux standard logging system, listed here in descending order of severity:
+
+- **FATAL:** Critical conditions, typically indicating system crashes or severe failures that require immediate attention.
+- **ERROR:** Non-fatal error conditions that nonetheless significantly impede normal operation.
+- **WARNING:** Potentially harmful situations that do not yet represent errors.
+- **NOTICE:** Important but not error-level events.
+- **INFO:** General informational messages that highlight system operations.
+- **DEBUG:** Detailed information, typically useful only when diagnosing problems.
+- **TRACE:** Very fine-grained logging to trace the internal flow of the system.
+
+Each log entry should include a timestamp, the log level, and a message describing the event or condition. This standard format will facilitate easier parsing and analysis of log files across different vendors and components.
 
 ## Memory and performance requirements
 
-The component should not be contributing more to memory and CPU utilization while performing normal operations and Commensurate with the operation required.
+**Client Module Responsibility:** The client module using the HAL is responsible for allocating and deallocating memory for any data structures required by the HAL's APIs. This includes structures passed as parameters to HAL functions and any buffers used to receive data from the HAL.
 
+**Vendor Implementation Responsibility:** Third-party vendors, when implementing the HAL, may allocate memory internally for their specific operational needs. It is the vendor's sole responsibility to manage and deallocate this internally allocated memory.
 
 ## Quality Control
 
-VLAN HAL implementation should pass checks using any third party tools like `Coverity`, `Black duck`, `Valgrind` etc. without any issue to ensure quality.
+To ensure the highest quality and reliability, it is strongly recommended that third-party quality assurance tools like `Coverity`, `Black Duck`, and `Valgrind` be employed to thoroughly analyze the implementation. The goal is to detect and resolve potential issues such as memory leaks, memory corruption, or other defects before deployment.
 
-There should not be any memory leaks/corruption introduced by HAL and underneath 3rd party software implementation.
-
+Furthermore, both the HAL wrapper and any third-party software interacting with it must prioritize robust memory management practices. This includes meticulous allocation, deallocation, and error handling to guarantee a stable and leak-free operation.
 
 ## Licensing
 
@@ -101,11 +144,11 @@ VLAN HAL implementation is spected to released under the Apache License 2.0.
 
 ## Build Requirements
 
-The source code should be able to be built under Linux Yocto environment and should be delivered as a shared library `libhal_vlan.so`.
+The source code should be capable of, but not be limited to, building under the Yocto distribution environment. The recipe should deliver a shared library named as `libhal_vlan.so`.
 
 ## Variability Management
 
-Changes to the interface will be controlled by versioning, vendors will be expected to implement to a fixed version of the interface, and based on SLA agreements move to later versions as demand requires.
+The role of adjusting the interface, guided by versioning, rests solely within architecture requirements. Thereafter, vendors are obliged to align their implementation with a designated version of the interface. As per Service Level Agreement (SLA) terms, they may transition to newer versions based on demand needs.
 
 Each API interface will be versioned using [Semantic Versioning 2.0.0](https://semver.org/), the vendor code will comply with a specific version of the interface.
 
@@ -122,7 +165,27 @@ All HAL function prototypes and datatype definitions are available in `vlan_hal.
 
 ## Theory of operation and key concepts
 
-Covered as per "Description" sections in the API documentation.
+The VLAN HAL provides an abstraction layer to manage Virtual Local Area Networks (VLANs) on a network device. It offers functionalities like creating, deleting, and configuring VLANs, associating ports with VLANs, and controlling filtering/tagging modes.
+
+### Key Questions Addressed:
+
+1.**Object Lifecycles:**
+
+- **Creation and Deletion:** VLANs are created dynamically using the `vlan_hal_addGroup` function, which takes a VLAN group name and a default VLAN ID as input. VLANs are deleted using the `vlan_hal_delGroup` function.
+- **Identification:** VLANs are uniquely identified by their group name (e.g., "brlan0") and VLAN ID.
+- **Usage:** VLANs are used to segment network traffic. Interfaces (e.g., "eth0") can be added to VLANs using `vlan_hal_addInterface`.
+
+2.**Method Sequencing:**
+
+- There is no explicit initialization function. However, it is implied that you would typically create VLAN groups (`vlan_hal_addGroup`) before adding interfaces to them (`vlan_hal_addInterface`).
+
+3.**State-Dependent Behavior:**
+
+- The VLAN HAL does not explicitly expose a state machine, but its behavior is implicitly state-dependent.
+For example:
+  - `vlan_hal_addInterface` requires a VLAN group to exist beforehand.
+  - `vlan_hal_delInterface` will not return an error if the interface does not exist in the VLAN group.
+  - The effect of `_is_this_interface_available_in_given_linux_bridge` depends on the current configuration of the VLANs and interfaces.
 
 ## Sequence Diagram
 
