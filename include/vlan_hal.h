@@ -77,15 +77,16 @@
 /**
  * @defgroup VLAN_HAL Virtual LAN HAL
  *
- * VLAN HAL layer is intended to support VLAN drivers through the System Calls.
+ * @brief This module provides a Hardware Abstraction Layer (HAL) for managing
+ * Virtual Local Area Networks (VLANs) on the system. It offers a set of APIs to
+ * create, delete, and modify VLAN groups, add and remove interfaces from VLANs,
+ * and query the VLAN configuration. This HAL interfaces with the underlying
+ * system's VLAN implementation, abstracting the details and providing a consistent
+ * interface for VLAN management across different platforms. It is designed to be
+ * used by higher-level networking components and applications to easily configure
+ * and control VLANs on the device.
  *
- * @defgroup VLAN_HAL_TYPES  VLAN HAL Data Types
- * @ingroup  VLAN_HAL
- *
- * @defgroup VLAN_HAL_APIS   VLAN HAL APIs
- * @ingroup  VLAN_HAL
- *
- **/
+ */
 
 /**
  * @addtogroup VLAN_HAL_TYPES
@@ -118,12 +119,24 @@
  */
 
 // Structure for VLANID Maintainance
-typedef struct _vlan_vlanidconfiguration
-{
-     char groupName[VLAN_HAL_MAX_VLANGROUP_TEXT_LENGTH];    /**< Bridge name for the VLAN group. */
-     char vlanID[VLAN_HAL_MAX_VLANID_TEXT_LENGTH];          /**< ID that will be assigned to the interface within the VLAN group. */
-     struct _vlan_vlanidconfiguration *nextlink;            /**< Structure pointer that reresents configuration of vlan ID and acts as a linked list. */
-
+/**
+ * @brief VLAN Group Configuration Structure
+ *
+ * This structure stores the configuration for a VLAN group. 
+ * It includes:
+ *   - The name of the VLAN group (which is the bridge name).
+ *   - The VLAN ID associated with the group.
+ *
+ * The structure is designed to be part of a linked list, allowing for the
+ * management of multiple VLAN groups.
+ *
+ * @note Ensure the total size of this structure (including padding) does not
+ *       exceed the `VLAN_HAL_MAX_VLANGROUP_TEXT_LENGTH` limit.
+ */
+typedef struct _vlan_vlanidconfiguration {
+    char groupName[VLAN_HAL_MAX_VLANGROUP_TEXT_LENGTH]; // Bridge name for the VLAN group.
+    char vlanID[VLAN_HAL_MAX_VLANID_TEXT_LENGTH];      // ID assigned to interfaces within the group.
+    struct _vlan_vlanidconfiguration *nextlink;        // Pointer to the next configuration in the linked list.
 } vlan_vlanidconfiguration_t;
 
 /** @} */  //END OF GROUP VLAN_HAL_TYPES
@@ -134,12 +147,30 @@ typedef struct _vlan_vlanidconfiguration
  *
 ***********************************************************************/
 
-/*
- * TODO: Extend returns codes for all functions and change to enums
- * 1. Extend the return codes by listing out the possible reasons of failure, to improve the interface in the future.
- *    Return codes need improvement to specifically detail the reason for the return
- *    This was reported during the review for header file migration to opensource github.
+/**
+ * @todo Refactor Return Codes and Header File Organization
+ *
+ * This module uses `#define` macros for return codes. To improve error handling and 
+ * provide better feedback, refactor as follows:
+ *
+ * 1. Create an `enum` for success and error conditions.
+ * 2. Add specific error values to the enum (e.g., `VLAN_HAL_GROUP_EXISTS`, 
+ *    `VLAN_HAL_INVALID_VLAN_ID`, `VLAN_HAL_INTERFACE_NOT_FOUND`, etc.).
+ * 3. Update function return types to use the new enum.
+ * 4. Ensure consistent error code usage throughout the VLAN HAL module.
+ *
+ * Additionally, split the header files to improve modularity and encapsulation:
+ *
+ * 5. `vlan_hal.h`: Contains the public interface (external functions).
+ * 6. `vlan_hal_internal.h`: Contains private helper functions and internal 
+ *                           data structures.
+ * 7. `vlan_utils.h`: Contains utility functions that might be useful in other
+ *                    parts of the codebase (if applicable).
+ *
+ * This refactoring improves usability, maintainability, and clarity of the 
+ * VLAN HAL module, as suggested in the open-source review.
  */
+
 
 
 /**
@@ -148,170 +179,241 @@ typedef struct _vlan_vlanidconfiguration
  */
 
 /**
-* @brief This HAL utility is used to create an new vlan group, and assign default vlanID.
-* @param[in] groupName A pointer to a constant character string (const char *).
-*                      \n It represents the bridge name for the VLAN group.
-*                      \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-* @param[in] default_vlanID A pointer to a constant character string (const char *).
-*                      \n A string representing the VLAN ID that will be assigned to the interface within the VLAN group.
-*                      \n The valid VLAN IDs range from 1 to 4094.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful (or) return RETURN_OK If group is already exist and has expected vlanID.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
+ * @brief Creates a new VLAN group and assigns the default VLAN ID.
+ *
+ * This function adds a new VLAN group to the system using the provided
+ * bridge name (`groupName`) and sets its default VLAN ID (`default_vlanID`).
+ * If a group with the same name already exists and has the same `default_vlanID`,
+ * it is considered a success.
+ *
+ * @param[in] groupName - The name of the bridge for the VLAN group (e.g., "brlan0").
+ *                        Valid values are: brlan0, brlan1, brlan2, brlan3, brlan4, brlan5,
+ *                        brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
+ * @param[in] default_vlanID - The VLAN ID assigned to the new VLAN group (1-4094).
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The operation succeeded, or the group already existed with the
+ *                     expected VLAN ID.
+ * @retval RETURN_ERR - An error occurred during group creation.
+ *
+ * @note Possible errors:
+ *       - VLAN ID is outside the valid range (1-4094).
+ *       - A group with the same name exists, but with a different VLAN ID.
+ *       - System-level errors during bridge creation or VLAN configuration.
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see general TODO).
+ */
 int vlan_hal_addGroup(const char *groupName, const char *default_vlanID);
 
 /**
-* @brief This HAL utility is used to delete existing vlan group, and delete correspond interface association.
-* @param[in] groupName A pointer to a constant character string (const char *).
-*                      \n It represents the bridge name associated with the VLAN group to be deleted.
-*                      \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful (or) RETURN_OK If group is not exist.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
+ * @brief Deletes an existing VLAN group and its associated interface memberships.
+ *
+ * This function removes a VLAN group identified by its bridge name (`groupName`). 
+ * If the group does not exist, the function considers this a success and returns 
+ * `RETURN_OK`. Any interfaces associated with the deleted group are also removed 
+ * from the VLAN configuration.
+ *
+ * @param[in] groupName - The name of the bridge associated with the VLAN group to 
+ *                        be deleted (e.g., "brlan0").
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The operation was successful, or the group did not exist.
+ * @retval RETURN_ERR - An error occurred during the deletion process.
+ *
+ * @note Possible error scenarios include:
+ *       - System-level errors during bridge deletion or interface removal.
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int vlan_hal_delGroup(const char *groupName);
 
 /**
-* @brief This HAL utility is used to add interface to existing vlan group, and assign the vlanID.
-* @param[in] groupName A pointer to a constant character string (const char *). The name of the VLAN group to which the interface will be added.
-*                   \n A string representing the bridge name to which the interface will be added.
-*                   \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-* @param[in] ifName A pointer to a constant character string (const char *). The name of the network interface (e.g., "eth0") to be added to the VLAN group.
-*                   \n It is vendor specific.
-*                   \n A string representing the name of the interface that will be added to the VLAN group.
-* @param[in] vlanID A pointer to a constant character string (const char *). The VLAN ID (as a string) to be assigned to the interface within the VLAN group. The VLAN ID should be a numerical value.
-*                   \n A string representing the VLAN ID that will be assigned to the interface within the VLAN group.
-*                   \n The valid VLAN IDs range from 1 to 4094.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful (or) RETURN_OK If interface is already in group, and has expected vlan ID.
-* @retval RETURN_ERR if group is not exist (or) if any error is detected.
-*
-*
-*/
+ * @brief Adds an interface to an existing VLAN group and assigns a VLAN ID.
+ *
+ * This function adds a network interface (`ifName`) to a specified VLAN group 
+ * (`groupName`). If the interface is already a member of the group with the
+ * expected VLAN ID (`vlanID`), it is considered a success.
+ *
+ * @param[in] groupName - The name of the VLAN group (bridge name) to which the 
+ *                        interface will be added (e.g., "brlan0").
+ *                        Valid values are: brlan0, brlan1, brlan2, brlan3, brlan4, brlan5,
+ *                        brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
+ * @param[in] ifName - The name of the network interface to be added (e.g., "eth0").
+ *                     This is vendor-specific.
+ * @param[in] vlanID - The VLAN ID (1-4094) to assign to the interface within the
+ *                     group.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The operation succeeded, or the interface was already a
+ *                     member of the group with the expected VLAN ID.
+ * @retval RETURN_ERR - An error occurred.
+ *
+ * @note Possible errors:
+ *       - The VLAN group does not exist.
+ *       - The VLAN ID is outside the valid range (1-4094).
+ *       - The interface is already in the group with a different VLAN ID.
+ *       - System-level errors during interface addition or VLAN configuration.
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int vlan_hal_addInterface(const char *groupName, const char *ifName, const char *vlanID);
 
 /**
-* @brief This HAL utility is used to deassociate existing interface from group.
-* @param[in] groupName A pointer to a constant character string (const char *). The name of the VLAN group from which the interface will be removed.
-*                   \n A string representing the bridge name from which the interface will be deassociated.
-*                   \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-* @param[in] ifName A pointer to a constant character string (const char *). The name of the network interface (e.g., "eth0") to be removed from the VLAN group.
-*                   \n It is vendor specific.
-*                   \n A string representing the name of the interface that will be deassociated from the VLAN group.
-* @param[in] vlanID A pointer to a constant character string (const char *). The VLAN ID (as a string) associated with the interface within the VLAN group. The VLAN ID should be a numerical value.
-*                   \n A string representing the VLAN ID associated with the interface in the VLAN group.
-*                   \n The valid VLAN IDs range from 1 to 4094.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful (or) RETURN_OK If interface is not exist.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
+ * @brief Removes an interface from a VLAN group.
+ *
+ * This function deassociates a network interface (`ifName`) from the specified 
+ * VLAN group (`groupName`). If the interface is not a member of the group, it 
+ * is considered a success.
+ *
+ * @param[in] groupName - The name of the VLAN group (bridge name) from which the
+ *                        interface will be removed (e.g., "brlan0").
+ *                        Valid values are: brlan0, brlan1, brlan2, brlan3, brlan4, brlan5,
+ *                        brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
+ * @param[in] ifName - The name of the network interface to be removed (e.g., "eth0"). 
+ *                     This is vendor-specific.
+ * @param[in] vlanID - The VLAN ID (1-4094) associated with the interface within the
+ *                     group.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The operation succeeded, or the interface was not a
+ *                     member of the group.
+ * @retval RETURN_ERR - An error occurred during the removal process.
+ *
+ * @note Possible errors:
+ *       - The VLAN group does not exist.
+ *       - The interface is not a member of the VLAN group.
+ *       - System-level errors during interface removal or VLAN configuration.
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int vlan_hal_delInterface(const char *groupName, const char *ifName, const char *vlanID);
 
 /**
-* @brief This HAL utility is used to dump the particular group setting, for debug purpose.
-* @param[in] groupName A pointer to a constant character string (const char *).
-*                      \n A string representing the bridge name for which the settings will be dumped.
-*                      \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
+ * @brief Outputs the settings of a specific VLAN group for debugging.
+ *
+ * This function retrieves and displays the configuration details of a 
+ * VLAN group identified by its bridge name (`groupName`). The output is intended
+ * for diagnostic purposes and may be printed to a console or log.
+ *
+ * @param[in] groupName - The name of the bridge representing the VLAN group to 
+ *                        dump (e.g., "brlan0"). Valid values are: brlan0, brlan1, 
+ *                        brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, 
+ *                        brlan106, brlan403, brlan112, brlan113, brebhaul.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The group settings were successfully dumped.
+ * @retval RETURN_ERR - An error occurred (e.g., the group was not found, or 
+ *                     there was a system error).
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int vlan_hal_printGroup(const char *groupName);
 
 
 /**
-* @brief This HAL utility is used dump all group setting, for debug purpose. It logs in console using printf.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
+ * @brief Outputs the settings of all VLAN groups for debugging.
+ *
+ * This function retrieves and displays the configuration details of all VLAN 
+ * groups on the system. The output is typically directed to a console or log 
+ * file and is intended for diagnostic purposes. The output method is implementation-specific,
+ * but in this case, it uses `printf` for logging to the console.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - All group settings were successfully dumped.
+ * @retval RETURN_ERR - An error occurred during the process of retrieving or
+ *                     displaying the group settings.
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int vlan_hal_printAllGroup();
 
 /**
-* @brief This HAL utility is used to deassociate all existing interface from group.
-* @param[in] groupName A pointer to a constant character string (const char *).
-*                      \n A string representing the bridge name from which all interfaces will be deassociated.
-*                      \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
-
+ * @brief Removes all interfaces from a VLAN group.
+ *
+ * This function deassociates all network interfaces from the specified VLAN 
+ * group (`groupName`).
+ *
+ * @param[in] groupName - The name of the bridge representing the VLAN group from
+ *                        which to remove all interfaces (e.g., "brlan0").
+ *                        Valid values are: brlan0, brlan1, brlan2, brlan3, brlan4, brlan5,
+ *                        brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - All interfaces were successfully removed from the group.
+ * @retval RETURN_ERR - An error occurred during the removal process.
+ *
+ * @note Possible errors:
+ *       - The VLAN group does not exist.
+ *       - System-level errors during interface removal or VLAN configuration.
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int vlan_hal_delete_all_Interfaces(const char *groupName);
 
 /**
-* @brief This HAL utility is used identify given bridge available in linux bridge.
-* @param[in] br_name It is a pointer to a character array (string) named br_name.
-*              \n A string representing the name of the bridge that will be checked for availability in the Linux bridge.
-*              \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
-
+ * @brief Checks if a given bridge exists in the Linux bridge system.
+ *
+ * This utility function determines whether a bridge identified by its name 
+ * (`br_name`) is currently present in the Linux bridge configuration. It can be
+ * used to verify the existence of a bridge before performing operations on it.
+ *
+ * @param[in] br_name - The name of the bridge to check (e.g., "brlan0"). Valid
+ *                      values are: brlan0, brlan1, brlan2, brlan3, brlan4, brlan5,
+ *                      brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The bridge exists in the Linux bridge system.
+ * @retval RETURN_ERR - The bridge was not found or an error occurred during the
+ *                     check.
+ */
 int _is_this_group_available_in_linux_bridge(char * br_name);
 
 /**
-* @brief This HAL utility is used identify given interface available in anyone of linux bridge.
-* @param[in] if_name It is a pointer to a character array (string) named if_name. The name of the network interface to be checked.
-*                 \n A string representing the name of the interface that will be checked for availability in any Linux bridge.
-*                 \n It is vendor specific.
-*
-* @param[in] vlanID It is a pointer to a character array (string) named vlanID.
-*                   \n A string representing the VLAN ID associated with the interface.
-*                   \n The valid VLAN IDs range from 1 to 4094.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
-
+ * @brief Checks if a given interface exists in any Linux bridge.
+ *
+ * This utility function determines whether a network interface, identified by 
+ * its name (`if_name`) and associated VLAN ID (`vlanID`), is currently a member of 
+ * any bridge within the Linux bridge system. This can be useful for checking the 
+ * VLAN configuration of an interface.
+ *
+ * @param[in] if_name - The name of the network interface to be checked 
+ *                      (e.g., "eth0"). This name is vendor-specific.
+ * @param[in] vlanID  - The VLAN ID (1-4094) associated with the interface.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The interface exists within a Linux bridge.
+ * @retval RETURN_ERR - The interface was not found in any bridge or an error 
+ *                     occurred during the check.
+ */
 int _is_this_interface_available_in_linux_bridge(char * if_name, char *vlanID);
 
 /**
-* @brief This HAL utility is used identify given interface available in given linux bridge.
-* @param[in] if_name It is a pointer to a character array (string) named if_name.
-*                 \n A string representing the name of the interface that will be checked for availability in given bridge.
-*                 \n It is vendor specific.
-* @param[in] br_name It is a pointer to a character array (string) named br_name.
-*                 \n A string representing the name of the bridge from which availability of interface is checked.
-*                 \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-* @param[in] vlanID It is a pointer to a character array (string) named vlanID.
-*                 \n A string representing the VLAN ID associated with the interface.
-*                 \n The valid VLAN IDs range from 1 to 4094.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
-
+ * @brief Checks if a specific interface is a member of a given Linux bridge.
+ *
+ * This utility function determines whether a network interface (`if_name`) with
+ * a specific VLAN ID (`vlanID`) is currently associated with a particular
+ * Linux bridge (`br_name`).
+ *
+ * @param[in] if_name - The name of the network interface to be checked 
+ *                      (e.g., "eth0"). This name is vendor-specific.
+ * @param[in] br_name - The name of the bridge to check for the interface's
+ *                      membership (e.g., "brlan0"). Valid values are: brlan0, brlan1, 
+ *                      brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, 
+ *                      brlan403, brlan112, brlan113, brebhaul.
+ * @param[in] vlanID  - The VLAN ID (1-4094) associated with the interface.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The interface is a member of the specified bridge with the
+ *                     given VLAN ID.
+ * @retval RETURN_ERR - The interface is not a member of the bridge or an error 
+ *                     occurred during the check.
+ */
 int _is_this_interface_available_in_given_linux_bridge(char * if_name, char * br_name,char *vlanID);
 
 /**
@@ -323,83 +425,106 @@ int _is_this_interface_available_in_given_linux_bridge(char * if_name, char * br
 *
 *
 */
-
 void _get_shell_outputbuffer(char * cmd, char * out, int len);
 
 /**
-* @brief This HAL utility is used get the buffer from shell output.
-* @param[in] fp It is a pointer to a FILE object. It is vendor specific.
-* @param[out] out A character array (string) where the output of the input fp will be copied. It is vendor specific.
-* @param[out] len length of the output string.
-*                 \n The maximum output length is 512.
-*
-*
-*/
-
+ * @brief Retrieves output from a file stream (likely from a shell command).
+ *
+ * This utility function reads data from a `FILE` stream (`fp`), which is
+ * typically the output of a shell command, and copies it into a provided
+ * buffer (`out`). 
+ *
+ * @param[in] fp  - Pointer to a `FILE` object representing the input stream.
+ * @param[out] out - The buffer to store the data read from the stream.
+ * @param[out] len - The length of the output buffer. The maximum output length is 512.
+ */
 void _get_shell_outputbuffer_res(FILE *fp, char * out, int len);
 
 /**
-* @brief This HAL utility is used store the VLAN ID, Group Name configuration.
-* @param[in] groupName It is a pointer to a character array (string) named groupName.
-*                      \n It represents the bridge name or group name that needs to be added to VLAN configuration entry.
-*                      \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-* @param[in] vlanID It is a pointer to a character array (string) named vlanID.
-*                 \n It represents the vlanID that needs to be added to VLAN configuration entry.
-*                 \n The valid VLAN IDs range from 1 to 4094.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
-
+ * @brief Stores the VLAN ID and group name configuration.
+ *
+ * This utility function inserts a new configuration entry for a VLAN group
+ * into a persistent storage (implementation-specific). The entry associates 
+ * the provided `groupName` with the `vlanID`.
+ *
+ * @param[in] groupName - The name of the VLAN group (bridge name) to store in
+ *                        the configuration (e.g., "brlan0"). Valid values are:
+ *                        brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7,
+ *                        brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
+ * @param[in] vlanID - The VLAN ID (1-4094) associated with the `groupName`
+ *                     to store in the configuration.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The configuration entry was successfully inserted.
+ * @retval RETURN_ERR - An error occurred during the insertion process (e.g.,
+ *                     storage error, invalid parameters).
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int insert_VLAN_ConfigEntry(char *groupName, char *vlanID);
 
 /**
-* @brief This HAL utility is used delete the VLAN ID, Group Name configuration
-* @param[in] groupName It is a pointer to a character array (string) named groupName.
-*                      \n It represents the bridge name or group name that needs to be deleted from VLAN configuration entry.
-*                      \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
-
+ * @brief Deletes the VLAN configuration entry for a group.
+ *
+ * This utility function removes the configuration entry associated with the 
+ * provided `groupName` from a persistent storage (implementation-specific). 
+ *
+ * @param[in] groupName - The name of the VLAN group (bridge name) whose 
+ *                        configuration entry is to be deleted (e.g., "brlan0"). 
+ *                        Valid values are: brlan0, brlan1, brlan2, brlan3, brlan4, brlan5,
+ *                        brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The configuration entry was successfully deleted.
+ * @retval RETURN_ERR - An error occurred during the deletion process (e.g., entry 
+ *                     not found, storage error).
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int delete_VLAN_ConfigEntry(char *groupName);
 
 
 /**
-* @brief This HAL utility is used get the VLAN ID for corresponding Group Name from link
-* @param[in] groupName A pointer to a constant character string (const char *).
-*                      \n It represents the bridge name or group name that needs to be deleted from VLAN configuration entry.
-*                      \n The values are : brlan0, brlan1, brlan2, brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, brlan112, brlan113, brebhaul.
-* @param[out] vlanID It is a pointer to a character array (string) named vlanID.
-*                 \n It represents the vlanID that will get update in the function .
-*                 \n The valid VLAN IDs range from 1 to 4094.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
-
+ * @brief Retrieves the VLAN ID associated with a given group name.
+ *
+ * This utility function searches for the VLAN configuration entry corresponding
+ * to the specified `groupName` and, if found, retrieves the associated `vlanID`.
+ * The `vlanID` is stored in the provided output parameter.
+ *
+ * @param[in] groupName - The name of the VLAN group (bridge name) to look up 
+ *                        (e.g., "brlan0"). Valid values are: brlan0, brlan1, brlan2,
+ *                        brlan3, brlan4, brlan5, brlan7, brlan10, brlan106, brlan403, 
+ *                        brlan112, brlan113, brebhaul.
+ * @param[out] vlanID  - Pointer to a character array where the retrieved VLAN ID
+ *                        will be stored.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - The VLAN ID was found and stored in `vlanID`.
+ * @retval RETURN_ERR - The group name was not found, or an error occurred during 
+ *                     the retrieval process.
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int get_vlanId_for_GroupName(const char *groupName, char *vlanID);
 
 /**
-* @brief This HAL utility is used to print all the VLAN ID configuration.
-*
-* @return The status of the operation.
-* @retval RETURN_OK if successful.
-* @retval RETURN_ERR if any error is detected.
-*
-*
-*/
-
+ * @brief Prints all stored VLAN ID and group name configurations.
+ *
+ * This function retrieves and displays all VLAN configuration entries, typically 
+ * from a persistent storage (implementation-specific). Each entry will include 
+ * the VLAN group name and its associated VLAN ID. The output is likely directed 
+ * to a console or log for debugging purposes.
+ *
+ * @returns The status of the operation.
+ * @retval RETURN_OK - All configurations were successfully printed.
+ * @retval RETURN_ERR - An error occurred during the retrieval or display process.
+ *
+ * @todo Refactor return codes to use a more specific and informative enum (see
+ *       general TODO comment).
+ */
 int print_all_vlanId_Configuration(void);
 
 /** @} */  //END OF GROUP VLAN_HAL_APIS
