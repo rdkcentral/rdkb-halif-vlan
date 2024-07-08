@@ -165,7 +165,66 @@ All HAL function prototypes and datatype definitions are available in `vlan_hal.
 
 ## Theory of operation and key concepts
 
-The VLAN HAL provides an abstraction layer to manage Virtual Local Area Networks (VLANs) on a network device. It offers functionalities like creating, deleting, and configuring VLANs, associating ports with VLANs, and controlling filtering/tagging modes.
+### Example VLAN Configuration on the Puma6 Platform
+
+The VLAN HAL module provides a simplified way to manage VLANs on the Puma6 platform. The following example demonstrates how to create and configure various VLAN groups to separate network traffic for different purposes:
+
+**Private Network (VLAN 100)**
+
+- **Bridge:** brlan0
+- **Interfaces:**
+  - `eth_1` (external switch port 1)
+  - `eth_2` (port 2)
+  - `eth_3` (port 3)
+  - `MoCA.100` (MoCA VLAN 100)
+  - `ath0` (2.4G Wi-Fi VLAN 100)
+  - `ath1` (5G Wi-Fi VLAN 100)
+- **Commands:**
+  - `vlan_hal_addGroup`("brlan0", "100");
+  - `vlan_hal_addInterface`("brlan0", "l2sd0", NULL);
+  
+**Xfinity Home (VLAN 101)**
+
+- **Bridge:** brlan1
+- **Interfaces:**
+  - `eth_4` (port 4)
+  - `MoCA.101` (MoCA VLAN 101)
+  - `ath2` (2.4G Wi-Fi VLAN 101)
+  - `ath3` (5G Wi-Fi VLAN 101)
+- **Commands:**
+  - `vlan_hal_addGroup`("brlan1", "101");
+  - `vlan_hal_addInterface`("brlan1", "l2sd0", NULL);
+  
+**Xfinity WiFi 2.4G (VLAN 102)**
+
+- **Bridge:** brlan2
+- **Interfaces:**
+  - `gretap0.102` (GRE tunnel VLAN 102)
+  - `MoCA.102` (MoCA VLAN 102)
+  - `ath4` (2.4G Wi-Fi VLAN 102)
+- **Commands:**
+  - `vlan_hal_addGroup`("brlan2", "102");
+  - `vlan_hal_addInterface`("brlan2", "l2sd0", NULL);
+  - `vlan_hal_addInterface`("brlan2", "gretap0", NULL);
+  
+**Xfinity WiFi 5G (VLAN 103)**
+
+- **Bridge:** brlan3
+- **Interfaces:**
+  - `gretap0.103` (GRE tunnel VLAN 103)
+  - `MoCA.103` (MoCA VLAN 103)
+  - `ath5` (5G Wi-Fi VLAN 103)
+- **Commands:**
+  - `vlan_hal_addGroup`("brlan3", "103");
+  - `vlan_hal_addInterface`("brlan3", "l2sd0", NULL);
+  - `vlan_hal_addInterface`("brlan3", "gretap0", NULL);
+  
+**Key Points:**
+
+- Each VLAN group is associated with a unique bridge name and VLAN ID.
+- Interfaces (Ethernet, MoCA, Wi-Fi, GRE tunnels) are added to the VLAN groups using the `vlan_hal_addInterface` function.
+- This modular approach allows for flexible network segmentation and isolation of traffic for different services.
+- This specific example uses a Puma6 platform and may need to be adapted for other environments.
 
 ### Key Questions Addressed:
 
